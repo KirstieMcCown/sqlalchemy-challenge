@@ -106,6 +106,60 @@ def tobs():
     return jsonify(twelve_months)
 
 
+@app.route("/api/v1.0/<start>")
+def temp_by_start_date(start):
+    """Fetch the TMIN, TAVG and TMAX for all dates grater than and equal to the date that matches
+       the path variable supplied by the user."""
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    start_date = start.replace("/", "-")
+
+    start_temp = session.query(Measurement.date, Station.name, Measurement.station, func.min(Measurement.tobs).label("Min"), func.max(Measurement.tobs).label("Max"), func.avg(Measurement.tobs).label("Average")).\
+    filter(func.strftime("%Y-%m-%d", Measurement.date) >= start_date).\
+    group_by(Measurement.station).all()
+    
+    start_list = []
+    for date, name, station, Min, Max, Average in start_temp:
+        end_dict = {}
+        end_dict["Date"] = date
+        end_dict["Name"] = name
+        end_dict["Station"] = station
+        end_dict["Min"] = Min
+        end_dict["Max"] = Max
+        end_dict["Average"] = Average
+        start_list.append(end_dict)
+    
+    return jsonify(start_list)
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def temp_by_dates(start, end):
+    """Fetch the TMIN, TAVG and TMAX for all dates between the start and end date inclusive, that matches
+       the path variable supplied by the user."""
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    start_date = start.replace("/", "-")
+    end_date = end.replace("/", "-")
+
+    start_temp = session.query(Measurement.date, Station.name, Measurement.station, func.min(Measurement.tobs).label("Min"), func.max(Measurement.tobs).label("Max"), func.avg(Measurement.tobs).label("Average")).\
+    filter(func.strftime("%Y-%m-%d", Measurement.date) >= start_date).\
+    filter(func.strftime("%Y-%m-%d", Measurement.date) <= end_date).\
+    group_by(Measurement.station).all()
+    
+    end_list = []
+    for date, name, station, Min, Max, Average in start_temp:
+        end_dict = {}
+        end_dict["Date"] = date
+        end_dict["Name"] = name
+        end_dict["Station"] = station
+        end_dict["Min"] = Min
+        end_dict["Max"] = Max
+        end_dict["Average"] = Average
+        end_list.append(end_dict)
+    
+    return jsonify(end_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
